@@ -37,6 +37,9 @@ The stream abstraction is language-specific:
 - Python: async generator
 - Go: receive-only channel
 
+`PromptInput` is defined by `spec/protocol.md`. In v1 it is either a string or
+an ordered array of text/image/video URL parts.
+
 ## Node API
 
 The main constructor is `connect`. `createClient` may exist as an alias.
@@ -152,8 +155,11 @@ class KimiCodeAgentClient:
     async def close(self) -> None: ...
 
 class Session:
-    id: str
-    work_dir: str
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def work_dir(self) -> str: ...
 
     def prompt(self, input: PromptInput) -> AsyncIterator[Event]: ...
     async def close(self) -> None: ...
@@ -212,14 +218,14 @@ for ev := range events {
 v0 API:
 
 ```go
-func Connect(ctx context.Context, opts ...ClientOption) (*Client, error)
+func Connect(ctx context.Context, opts ...ClientOption) (Client, error)
 
-type Client struct {
-    CreateSession(ctx context.Context, opts ...SessionOption) (*Session, error)
+type Client interface {
+    CreateSession(ctx context.Context, opts ...SessionOption) (Session, error)
     Close() error
 }
 
-type Session struct {
+type Session interface {
     ID() string
     WorkDir() string
     Prompt(ctx context.Context, input PromptInput) (<-chan Event, error)
@@ -230,12 +236,12 @@ type Session struct {
 v1 additions:
 
 ```go
-type Client struct {
-    ResumeSession(ctx context.Context, id string) (*Session, error)
+type Client interface {
+    ResumeSession(ctx context.Context, id string) (Session, error)
     ListSessions(ctx context.Context, opts ...ListSessionsOption) ([]SessionSummary, error)
 }
 
-type Session struct {
+type Session interface {
     Cancel(ctx context.Context, opts ...CancelOption) error
     Steer(ctx context.Context, input PromptInput) error
     Status(ctx context.Context) (SessionStatus, error)
@@ -264,6 +270,8 @@ type Session struct {
 ## Event Types
 
 Event names match the protocol exactly. Clients must not rename events.
+Canonical payload fields are also defined by `spec/protocol.md`; for example,
+`assistant.delta` uses the field name `delta`, not `text`.
 
 Node exports a discriminated union:
 
@@ -387,4 +395,3 @@ legacy surface.
 - Get session status.
 - Error code mapping in all languages.
 - Unknown events handled safely.
-

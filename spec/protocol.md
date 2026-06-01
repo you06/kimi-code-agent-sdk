@@ -48,6 +48,11 @@ Transport is JSON-RPC 2.0 over line-delimited stdio.
 
 Each message is one JSON object followed by `\n`.
 
+This protocol intentionally uses string error codes in the JSON-RPC
+`error.code` field (for example, `"SESSION_NOT_FOUND"`). Strict JSON-RPC 2.0
+uses integer error codes; SDK clients for this protocol must accept the string
+codes defined in this document.
+
 Client request:
 
 ```json
@@ -585,4 +590,3 @@ Minimum v1 fixtures:
 - `TURN_NOT_ACTIVE` on steer without active turn
 
 Node, Python, and Go clients must pass the same fixture set.
-
