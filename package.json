@@ -1,0 +1,16 @@
+{
+  "name": "kimi-code-agent-sdk-workspace",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "typecheck": "pnpm -C node run typecheck",
+    "test": "pnpm -C node run test",
+    "build": "pnpm -C node run build"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
+  }
+}
