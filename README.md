@@ -5,13 +5,14 @@ Standalone multi-language SDK for controlling Kimi Code from applications.
 This repository is intentionally based on the new `kimi-code` runtime, not the
 legacy `kimi-cli` runtime used by `MoonshotAI/kimi-agent-sdk`.
 
-Current status: protocol design plus an initial Node v0 client.
+Current status: protocol design plus initial Node and Python v0 clients.
 
 ## Design
 
 - [Protocol](spec/protocol.md)
 - [Client API](spec/client-api.md)
 - [Node client](node/)
+- [Python client](python/)
 
 ## Target Shape
 

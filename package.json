@@ -4,8 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "typecheck": "pnpm -C node run typecheck",
-    "test": "pnpm -C node run test",
+    "typecheck": "pnpm -C node run typecheck && find python/src python/test -name '*.py' -print0 | xargs -0 python3 -m py_compile",
+    "test": "pnpm -C node run test && PYTHONPATH=python/src python3 -m unittest discover -s python/test",
     "build": "pnpm -C node run build"
   },
   "devDependencies": {
