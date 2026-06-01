@@ -86,14 +86,14 @@ class KimiCodeAgentClient:
         summary = _session_summary(
             await self._rpc.request(
                 "createSession",
-                {
+                _omit_none({
                     "id": id,
                     "workDir": work_dir,
                     "model": model,
                     "thinking": thinking,
                     "permission": permission,
                     "metadata": metadata,
-                },
+                }),
             )
         )
         return self._bind_session(summary)
@@ -107,7 +107,7 @@ class KimiCodeAgentClient:
     ) -> list[SessionSummary]:
         result = await self._rpc.request(
             "listSessions",
-            {"workDir": work_dir, "sessionId": session_id},
+            _omit_none({"workDir": work_dir, "sessionId": session_id}),
         )
         if not isinstance(result, list):
             raise TransportError("listSessions result must be an array.", details=result)
@@ -141,7 +141,7 @@ class KimiCodeAgentClient:
         await self._rpc.request("steer", {"sessionId": session_id, "input": input})
 
     async def cancel(self, session_id: str, turn_id: int | None = None) -> None:
-        await self._rpc.request("cancel", {"sessionId": session_id, "turnId": turn_id})
+        await self._rpc.request("cancel", _omit_none({"sessionId": session_id, "turnId": turn_id}))
 
     async def get_status(self, session_id: str) -> SessionStatus:
         return _session_status(await self._rpc.request("getStatus", {"sessionId": session_id}))
@@ -256,6 +256,10 @@ def _turn_id(value: Any) -> int:
     if not isinstance(value, dict) or not isinstance(value.get("turnId"), int):
         raise TransportError("prompt result must include turnId.", details=value)
     return value["turnId"]
+
+
+def _omit_none(value: dict[str, Any]) -> dict[str, Any]:
+    return {key: item for key, item in value.items() if item is not None}
 
 
 def _session_summary(value: Any) -> SessionSummary:
