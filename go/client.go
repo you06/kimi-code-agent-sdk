@@ -228,15 +228,16 @@ func (c *Client) streamTurn(
 	params map[string]any,
 ) (<-chan Event, error) {
 	events := make(chan Event, 128)
-	buffer := make(chan Event, 128)
+	queue := newEventQueue()
 	unsubscribe := c.OnEvent(func(event Event) {
 		if event.SessionID == sessionID {
-			buffer <- event
+			queue.push(event)
 		}
 	})
 	raw, err := c.rpc.request(ctx, method, params)
 	if err != nil {
 		unsubscribe()
+		queue.close()
 		close(events)
 		return nil, err
 	}
@@ -245,24 +246,25 @@ func (c *Client) streamTurn(
 	}
 	if err := json.Unmarshal(raw, &result); err != nil {
 		unsubscribe()
+		queue.close()
 		close(events)
 		return nil, transportError("prompt result must include turnId.", err)
 	}
 	go func() {
 		defer unsubscribe()
+		defer queue.close()
 		defer close(events)
 		for {
+			event, ok := queue.next(ctx)
+			if !ok {
+				return
+			}
 			select {
-			case event := <-buffer:
-				select {
-				case events <- event:
-				case <-ctx.Done():
-					return
-				}
-				if event.Type == "turn.ended" && event.TurnID != nil && *event.TurnID == result.TurnID {
-					return
-				}
+			case events <- event:
 			case <-ctx.Done():
+				return
+			}
+			if event.Type == "turn.ended" && event.TurnID != nil && *event.TurnID == result.TurnID {
 				return
 			}
 		}
@@ -301,4 +303,65 @@ func (s *Session) Cancel(ctx context.Context, turnID *int) error {
 
 func (s *Session) GetStatus(ctx context.Context) (SessionStatus, error) {
 	return s.client.GetStatus(ctx, s.summary.ID)
+}
+
+type eventQueue struct {
+	mu     sync.Mutex
+	notify chan struct{}
+	events []Event
+	closed bool
+}
+
+func newEventQueue() *eventQueue {
+	return &eventQueue{notify: make(chan struct{}, 1)}
+}
+
+func (q *eventQueue) push(event Event) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.closed {
+		return
+	}
+	q.events = append(q.events, event)
+	select {
+	case q.notify <- struct{}{}:
+	default:
+	}
+}
+
+func (q *eventQueue) next(ctx context.Context) (Event, bool) {
+	for {
+		q.mu.Lock()
+		if len(q.events) > 0 {
+			event := q.events[0]
+			copy(q.events, q.events[1:])
+			q.events = q.events[:len(q.events)-1]
+			q.mu.Unlock()
+			return event, true
+		}
+		if q.closed {
+			q.mu.Unlock()
+			return Event{}, false
+		}
+		q.mu.Unlock()
+
+		select {
+		case <-q.notify:
+		case <-ctx.Done():
+			return Event{}, false
+		}
+	}
+}
+
+func (q *eventQueue) close() {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	if q.closed {
+		return
+	}
+	q.closed = true
+	select {
+	case q.notify <- struct{}{}:
+	default:
+	}
 }

@@ -1,0 +1,60 @@
+{
+  "name": "v0-protocol-error",
+  "description": "Map a createSession protocol error into the client error type.",
+  "client": [
+    {
+      "method": "initialize",
+      "params": {
+        "supportedVersions": ["1.0"],
+        "client": {
+          "name": "conformance-client"
+        }
+      }
+    },
+    {
+      "method": "createSession",
+      "params": {
+        "workDir": "/tmp/missing"
+      }
+    },
+    {
+      "method": "shutdown",
+      "params": {}
+    }
+  ],
+  "server": [
+    {
+      "id": "${initialize.id}",
+      "result": {
+        "protocolVersion": "1.0",
+        "supportedVersions": ["1.0"],
+        "server": {
+          "name": "kimi-code",
+          "version": "0.0.0-test"
+        },
+        "capabilities": {}
+      }
+    },
+    {
+      "id": "${createSession.id}",
+      "error": {
+        "code": "INVALID_INPUT",
+        "message": "id must be ses_conformance",
+        "data": {
+          "retryable": false
+        }
+      }
+    },
+    {
+      "id": "${shutdown.id}",
+      "result": {}
+    }
+  ],
+  "expect": {
+    "error": {
+      "code": "INVALID_INPUT",
+      "retryable": false
+    }
+  }
+}
+

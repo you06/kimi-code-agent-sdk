@@ -1,0 +1,121 @@
+{
+  "name": "v0-basic-prompt",
+  "description": "Create one session and stream one completed prompt turn.",
+  "client": [
+    {
+      "method": "initialize",
+      "params": {
+        "supportedVersions": ["1.0"],
+        "client": {
+          "name": "conformance-client"
+        }
+      }
+    },
+    {
+      "method": "createSession",
+      "params": {
+        "id": "ses_conformance",
+        "workDir": "/tmp/project",
+        "thinking": false,
+        "permission": "auto"
+      }
+    },
+    {
+      "method": "prompt",
+      "params": {
+        "sessionId": "ses_conformance",
+        "input": "hello"
+      }
+    },
+    {
+      "method": "shutdown",
+      "params": {}
+    }
+  ],
+  "server": [
+    {
+      "id": "${initialize.id}",
+      "result": {
+        "protocolVersion": "1.0",
+        "supportedVersions": ["1.0"],
+        "server": {
+          "name": "kimi-code",
+          "version": "0.0.0-test"
+        },
+        "capabilities": {}
+      }
+    },
+    {
+      "id": "${createSession.id}",
+      "result": {
+        "id": "ses_conformance",
+        "workDir": "/tmp/project",
+        "sessionDir": "/tmp/session",
+        "createdAt": 1,
+        "updatedAt": 2
+      }
+    },
+    {
+      "method": "event",
+      "params": {
+        "type": "turn.started",
+        "sessionId": "ses_conformance",
+        "agentId": "main",
+        "turnId": 0
+      }
+    },
+    {
+      "id": "${prompt.id}",
+      "result": {
+        "turnId": 0
+      }
+    },
+    {
+      "method": "event",
+      "params": {
+        "type": "assistant.delta",
+        "sessionId": "ses_conformance",
+        "agentId": "main",
+        "turnId": 0,
+        "delta": "hello from fake server"
+      }
+    },
+    {
+      "method": "event",
+      "params": {
+        "type": "turn.ended",
+        "sessionId": "ses_conformance",
+        "agentId": "main",
+        "turnId": 0,
+        "reason": "completed"
+      }
+    },
+    {
+      "id": "${shutdown.id}",
+      "result": {}
+    }
+  ],
+  "expect": {
+    "session": {
+      "id": "ses_conformance",
+      "workDir": "/tmp/project"
+    },
+    "events": [
+      {
+        "type": "turn.started",
+        "turnId": 0
+      },
+      {
+        "type": "assistant.delta",
+        "turnId": 0,
+        "delta": "hello from fake server"
+      },
+      {
+        "type": "turn.ended",
+        "turnId": 0,
+        "reason": "completed"
+      }
+    ]
+  }
+}
+
